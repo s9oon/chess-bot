@@ -6,8 +6,15 @@ from flax import nnx
 import optax
 
 
-def encode_board(board: chess.Board) -> jnp.ndarray:
-    """Turn a board into 12 planes of 8x8: shape (8, 8, 12)."""
+PIECE_NAMES = ["white pawn", "white knight", "white bishop", "white rook", "white queen", "white king",
+               "black pawn", "black knight", "black bishop", "black rook", "black queen", "black king"]
+
+
+def encode_board(board: chess.Board, debug: bool = False) -> jnp.ndarray:
+    """Turn a board into 12 planes of 8x8: shape (8, 8, 12).
+
+    debug=True prints what was built. Leave it off when encoding thousands of boards.
+    """
     # Start with all zeros: 8 rows (ranks), 8 columns (files), 12 piece planes.
     planes = np.zeros((8, 8, 12), dtype=np.float32)
 
@@ -26,6 +33,15 @@ def encode_board(board: chess.Board) -> jnp.ndarray:
 
         # Mark "this piece is on this square".
         planes[row, col, plane] = 1.0
+
+    if debug:
+        np.set_printoptions(precision=2, suppress=True, linewidth=120)
+        print("\nencoded shape:", planes.shape)  # (8, 8, 12)
+
+        for i in [0, 6]:  # just white pawns and black pawns
+            # planes[:, :, i] = sheet i as an 8x8 grid; [::-1] puts rank 8 at the top like the board
+            print(f"\nsheet {i}: {PIECE_NAMES[i]}")
+            print(planes[:, :, i][::-1])
 
     # Convert to a JAX array so it can go on the GPU.
     return jnp.array(planes)
@@ -58,3 +74,17 @@ class ChessCNN(nnx.Module):
 if __name__ == "__main__":
     print("JAX", jax.__version__, "devices:", jax.devices())
     model = ChessCNN(channels=64, rngs=nnx.Rngs(0))
+
+    board = chess.Board()
+    x = encode_board(board, debug=True)  # prints the sheets
+
+    # --- The layers: what each one holds (its learnable weights) ---
+    print("\nlayer weights:")
+    total = 0
+    for name in ["conv1", "conv2", "conv3", "bn1", "bn2", "bn3", "linear1", "linear2"]:
+        layer = getattr(model, name)  # same as model.conv1, model.conv2, ...
+        params = nnx.state(layer, nnx.Param)  # just the learnable numbers
+        for param_name, value in params.items():
+            print(f"  {name}.{param_name}: {value[...].shape}")
+            total += value[...].size
+    print("total learnable numbers:", total)
