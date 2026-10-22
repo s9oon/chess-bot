@@ -2,15 +2,15 @@
 
 How the pieces fit together, from board to score. Details on each part:
 [encoding](encoding.md), [convolution](convolution.md),
-[activations](activations.md).
+[batch normalization](batch_normalization.md), [activations](activations.md).
 
 ## The layers
 
 ```
 input (8, 8, 12)                  the encoded board
-  → conv → ReLU   ┐
-  → conv → ReLU   ├ hidden layers (conv)
-  → conv → ReLU   ┘               (8, 8, 32) output feature maps
+  → conv → batchnorm → ReLU   ┐
+  → conv → batchnorm → ReLU   ├ hidden layers (conv)
+  → conv → batchnorm → ReLU   ┘   (8, 8, 32) output feature maps
   → flatten                       (2048,) in one row
   → linear        ← the head: turns the features into the score
   → tanh                          the score, -1 (black winning) to +1 (white winning)
@@ -79,6 +79,6 @@ matters.
 
 ## Status in `main.py`
 
-- ✅ conv layers with ReLU
+- ✅ conv layers with batchnorm and ReLU
 - ✅ flatten, linear head (one layer: 2048 → 1), tanh
 - ⬜ training (the scores are random until then)
