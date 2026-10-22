@@ -38,5 +38,12 @@ class ChessCNN(nnx.Module):
         self.conv2 = nnx.Conv(32, 32, (3, 3), padding="SAME", rngs=rngs)
         self.conv3 = nnx.Conv(32, 32, (3, 3), padding="SAME", rngs=rngs)
 
+    def __call__(self, x):
+        x = nnx.relu(self.conv1(x))  # conv1, then ReLU on its output feature maps
+        x = nnx.relu(self.conv2(x))
+        x = nnx.relu(self.conv3(x))
+        return x
+
+
 if __name__ == "__main__":
     print("JAX", jax.__version__, "devices:", jax.devices())
