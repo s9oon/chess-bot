@@ -49,44 +49,13 @@ layer:
 The paper's figure above is exactly our case: **half padding, unit strides**,
 where the output is the same size as the input.
 
-## Stride
+## Padding and stride
 
-The **stride** is how far the kernel jumps between patches, across and down.
+For padding and stride, refer to the animations in
+[vdumoulin/conv_arithmetic][repo] and chapter 2 of [the paper][paper]. They
+explain it extremely well.
 
-- **Stride 1 (ours):** the kernel visits every position, like the figure
-  above. Our 8x8 board gives an 8x8 output.
-- **Stride 2:** the kernel skips every other position, so the output shrinks.
-  Our 8x8 board would give a 4x4 output.
-
-![A 3x3 kernel moving with stride 2 over a padded input](https://raw.githubusercontent.com/vdumoulin/conv_arithmetic/master/gif/padding_strides.gif)
-
-*Stride 2: the kernel jumps two squares at a time, so the output (green) is
-smaller. Figure from [vdumoulin/conv_arithmetic][repo] (MIT licence).*
-
-We use stride 1 because in chess every square matters, so we want an output
-for each one.
-
-## Padding
-
-**Padding** adds a ring of zeros around the input, so the kernel can still sit
-on the edge squares.
-
-- **`padding="SAME"` (ours):** with a 3x3 kernel this adds one ring of zeros
-  (*p* = 1). The kernel fits on every square, including the edges, and the
-  board stays 8x8. This is the paper's **half (same) padding**, shown in the
-  first figure.
-- **`padding="VALID"`:** no zeros. The kernel can only sit where it fits
-  completely, so the output shrinks: our 8x8 board would give a 6x6 output.
-
-![A 3x3 kernel over an unpadded input: the output is smaller](https://raw.githubusercontent.com/vdumoulin/conv_arithmetic/master/gif/no_padding_no_strides.gif)
-
-*No padding: the kernel can't hang over the edge, so the output (green) is
-smaller than the input. Figure from [vdumoulin/conv_arithmetic][repo] (MIT
-licence).*
-
-We use `"SAME"` because edge squares matter in chess (rooks start in the
-corners, kings castle to the side), and so the board stays 8x8 through every
-layer.
+We use stride 1 and `padding="SAME"`, so the board stays 8x8 in every layer.
 
 ## Output size
 
