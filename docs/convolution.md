@@ -104,5 +104,8 @@ board   (8, 8, 12)
 
 Each layer's input channels must match the previous layer's output channels.
 
+After each conv layer, ReLU is applied to the output feature maps: see
+[activations.md](activations.md).
+
 [paper]: https://arxiv.org/abs/1603.07285
 [repo]: https://github.com/vdumoulin/conv_arithmetic
