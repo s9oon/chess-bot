@@ -12,6 +12,12 @@ x = encode_board(chess.Board())   # shape (8, 8, 12)
 The board is split into **12 grids of 8x8**, one per piece type and colour.
 Each grid has a `1` where that piece is and `0` everywhere else.
 
+![Each map marks where one piece type is; the 12 maps are stacked into one array](images/encoding.png)
+
+Left to right: the printed maps for white pawns (map 0) and black pawns
+(map 6), what those `1`s mean on the board, and all 12 maps stacked into one
+array. The network gets the whole stack at once.
+
 | Map | Piece | Map | Piece |
 |---|---|---|---|
 | 0 | white pawn | 6 | black pawn |
