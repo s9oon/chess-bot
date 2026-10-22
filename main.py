@@ -38,14 +38,20 @@ class ChessCNN(nnx.Module):
         self.conv2 = nnx.Conv(32, 32, (3, 3), padding="SAME", rngs=rngs)
         self.conv3 = nnx.Conv(32, 32, (3, 3), padding="SAME", rngs=rngs)
 
+        # Batch normalization after each conv: one per output feature map (32).
+        # Use model.train() while training and model.eval() when playing.
+        self.bn1 = nnx.BatchNorm(32, rngs=rngs)
+        self.bn2 = nnx.BatchNorm(32, rngs=rngs)
+        self.bn3 = nnx.BatchNorm(32, rngs=rngs)
+
         # Head: one linear layer, a weight matrix applied to all 8 x 8 x 32 = 2048
         # flattened output feature map values at once.
         self.linear = nnx.Linear(8 * 8 * 32, 1, rngs=rngs)
 
     def __call__(self, x):
-        x = nnx.relu(self.conv1(x))  # conv1, then ReLU on its output feature maps
-        x = nnx.relu(self.conv2(x))
-        x = nnx.relu(self.conv3(x))
+        x = nnx.relu(self.bn1(self.conv1(x)))  # conv1, then batchnorm, then ReLU
+        x = nnx.relu(self.bn2(self.conv2(x)))
+        x = nnx.relu(self.bn3(self.conv3(x)))
 
         x = x.reshape(x.shape[0], -1)  # flatten: (batch, 8, 8, 32) -> (batch, 2048)
         x = self.linear(x)             # (batch, 1): the score
