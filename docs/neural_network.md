@@ -58,6 +58,14 @@ Finally, **tanh** takes that score and squishes it into a number between
 
 ### Why a linear head?
 
+Conv layers are good at **spotting patterns**, but not at **evaluating how
+important they are**. That's why we stack linear layers on top:
+
+```
+conv layers  →  detect patterns    (what's going on, and where)
+linear head  →  evaluate them      (so who's winning?)
+```
+
 Conv layers have two blind spots:
 
 1. **They only see locally.** After three conv layers each number only knows
@@ -80,5 +88,5 @@ matters.
 ## Status in `main.py`
 
 - ✅ conv layers with batchnorm and ReLU
-- ✅ flatten, linear head (one layer: 2048 → 1), tanh
+- ✅ flatten, linear head (two layers: 2048 → 64 → ReLU → 1), tanh
 - ⬜ training (the scores are random until then)
