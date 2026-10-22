@@ -44,9 +44,11 @@ class ChessCNN(nnx.Module):
         self.bn2 = nnx.BatchNorm(32, rngs=rngs)
         self.bn3 = nnx.BatchNorm(32, rngs=rngs)
 
-        # Head: one linear layer, a weight matrix applied to all 8 x 8 x 32 = 2048
-        # flattened output feature map values at once.
-        self.linear = nnx.Linear(8 * 8 * 32, 1, rngs=rngs)
+        # Head: linear layers that evaluate the patterns the convs found.
+        # linear1 is a hidden layer: 2048 flattened values -> 64 combinations.
+        # linear2 is the output layer: 64 combinations -> 1 score.
+        self.linear1 = nnx.Linear(8 * 8 * 32, 64, rngs=rngs)
+        self.linear2 = nnx.Linear(64, 1, rngs=rngs)
 
     def __call__(self, x):
         x = nnx.relu(self.bn1(self.conv1(x)))  # conv1, then batchnorm, then ReLU
@@ -54,8 +56,9 @@ class ChessCNN(nnx.Module):
         x = nnx.relu(self.bn3(self.conv3(x)))
 
         x = x.reshape(x.shape[0], -1)  # flatten: (batch, 8, 8, 32) -> (batch, 2048)
-        x = self.linear(x)             # (batch, 1): the score
-        x = jnp.tanh(x)                # squish the score into -1 (black winning) .. +1 (white winning)
+        x = nnx.relu(self.linear1(x))  # (batch, 64): ReLU switches each combination on/off
+        x = self.linear2(x)            # (batch, 1): the score
+        x = jnp.tanh(x)               # squish the score into -1 (black winning) .. +1 (white winning)
         return x[:, 0]                 # (batch,): one score per board
 
 
