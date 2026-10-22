@@ -1,166 +1,102 @@
-# Convolution: the kernel
+# Convolution layers
 
 ```python
-self.conv1 = nnx.Conv(12, channels, kernel_size=(3, 3), strides=1, padding="SAME", rngs=rngs)
+self.conv1 = nnx.Conv(12, 32, (3, 3), padding="SAME", rngs=rngs)
+self.conv2 = nnx.Conv(32, 32, (3, 3), padding="SAME", rngs=rngs)
+self.conv3 = nnx.Conv(32, 32, (3, 3), padding="SAME", rngs=rngs)
 ```
 
-`kernel_size=(3, 3)` is the **kernel**: a small 3x3 window that looks at one
-square and its 8 neighbours.
+Terms and figures follow *A guide to convolution arithmetic for deep
+learning* ([Dumoulin & Visin, 2016][paper]).
 
-## The window
+## What a convolution is
 
-![A 3x3 kernel (red) looking at the squares around c6 (blue)](images/kernel.jpg)
-
-- **Blue square (c6):** the square we're working out a number for.
-- **Red box (b7 to d5):** what the kernel looks at to do it: c6 plus its 8
-  neighbours.
-
-## The weights
-
-Each kernel has **3 x 3 x 12 = 108 weights**, and conv1 has 64 kernels.
-They're all stored in one array:
+A **kernel** is a matrix of weights that is applied to each flattened
+**patch** vector on the input feature map. Applying it and adding a bias is
+an **affine transformation**:
 
 ```
-conv1.kernel   shape (3, 3, 12, 64)
-                      │  │   │   └─ which kernel (64 of them, set by channels=64)
-                      │  │   └───── which piece sheet (12)
-                      └──┴───────── where in the 3×3 window (9 spots)
+output value = W · x + b
+               │   │   └─ bias
+               │   └───── the flattened patch
+               └───────── the kernel's weights
 ```
 
-The 64 kernels come from `channels=64`, a number we pick. It has nothing to
-do with the 64 squares on the board.
+Doing that at every position, with the **same** kernel, builds one **output
+feature map**. That whole process is the convolution.
 
-**`conv1.kernel`** is the entire array of kernels, and each **kernel** is one
-pattern detector of **108 weights**:
+![A 3x3 kernel sliding over a padded input to build the output](https://raw.githubusercontent.com/vdumoulin/conv_arithmetic/master/gif/same_padding_no_strides.gif)
 
-```
-conv1.kernel
-├── kernel 0   (108 weights)   e.g. "attacked by black pawns?"
-├── kernel 1   (108 weights)   e.g. "knight nearby?"
-├── kernel 2   (108 weights)
-│   ...
-└── kernel 63  (108 weights)
-```
+*Blue: input feature map. Shaded: the patch under the kernel. Green: output
+feature map. Figure from [vdumoulin/conv_arithmetic][repo] (MIT licence).*
 
-64 kernels x 108 weights = **6,912 weights**.
+Two things make it a convolution rather than a normal (fully connected)
+layer:
 
-### One kernel, every stop
+- **Local:** each output only looks at a small patch, not the whole input.
+- **Shared weights:** the same kernel is used at every position.
 
-A kernel only has 108 weights, but it still covers the whole board: it
-**reuses the same 108 weights at every stop**. It carries them to the next
-stop and multiplies them against the board data there. Different data under
-the window gives a different opinion, using the same 108 weights each time.
+## Our settings, in the paper's terms
 
-Every kernel visits every stop. They don't split the board between them.
+| Code | Paper's term | Ours |
+|---|---|---|
+| first number | input channels (input feature maps) | 12 for conv1, 32 after |
+| second number | output channels, one per kernel | 32 |
+| `(3, 3)` | kernel size *k* | 3 |
+| `strides` (default) | unit strides, *s* = 1 | moves 1 square at a time |
+| `padding="SAME"` | half (same) padding, *p* = 1 | one ring of zeros around the board |
 
-## Stride
+The paper's figure above is exactly our case: **half padding, unit strides**,
+where the output is the same size as the input.
 
-`strides=1` is how many squares the kernel **jumps** each time it moves, both
-across and down. Each place it stops is a **position**, and each position
-gives one output number per kernel. The grid of results is the **output size**
-(also called the **feature map** size).
+## Output size
 
-### Stride 1 (ours)
-
-The kernel stops on every square: a8, b8, c8 ... h8, then the next row down,
-and so on.
+The paper's formula:
 
 ```
-8 across x 8 down = 64 positions  ->  output is 8x8
+o = (i + 2p - k) / s + 1
 ```
 
-### Stride 2
-
-The kernel skips every other square, across **and** down:
+For our board (*i* = 8, *p* = 1, *k* = 3, *s* = 1):
 
 ```
-X . X . X . X .
-. . . . . . . .
-X . X . X . X .
-. . . . . . . .
-X . X . X . X .
-. . . . . . . .
-X . X . X . X .
-. . . . . . . .
-
-4 across x 4 down = 16 positions  ->  output is 4x4
+o = (8 + 2 - 3) / 1 + 1 = 8
 ```
 
-Strides can also be set separately per direction, e.g. `strides=(1, 2)` would
-step 1 down but 2 across (8 x 4 = 32 positions). A plain `strides=2` applies
-to both.
+So every conv layer keeps the board at **8x8**.
 
-### Why stride 1
+## Many channels
 
-Stride 2 throws away detail: the board shrinks to 4x4 and there's no longer a
-result for every square. In chess the exact square matters, so we keep
-stride 1 and the board stays 8x8 through every conv layer.
+The paper's figures show **one** input feature map and **one** kernel. Ours
+has more of both:
 
-## Padding
+- **Each kernel spans all input channels.** conv1's kernels are 3 x 3 x 12 =
+  **108** weights; conv2's and conv3's are 3 x 3 x 32 = **288**.
+- **Every kernel is applied to every patch.** 32 kernels give 32 output
+  feature maps.
 
-`padding="SAME"` decides what happens at the **edge of the board**, where part
-of the 3x3 window hangs off the side.
-
-![Rows of nodes through the conv layers, with padding SAME vs VALID](images/padding.png)
-
-### `padding="SAME"` (ours)
-
-The dashed **`0`** circles are **padding**: fake empty squares added off the
-edge of the board.
-
-The blue node on the a-file still gets its 3 connections, because one of them
-goes to a padding `0`. So every square gets an output, and every row stays
-**8 wide**.
-
-### `padding="VALID"`
-
-No padding. A node can only exist where all 3 of its connections land on real
-squares, so each layer loses one node from each side:
+As one matrix multiply, for conv1:
 
 ```
-8 -> 6 -> 4 -> 2
+patches (64, 108)  @  kernels (108, 32)  =  output (64, 32)  ->  (8, 8, 32)
+   │                     │
+   │                     └─ one column per kernel
+   └─ one row per position (8 x 8), each a flattened 3x3x12 patch
 ```
 
-After three conv layers only 2 nodes would be left, and the a, b, g and h
-files would be gone.
+## Shapes through the layers
 
-### Why SAME
+```
+board   (8, 8, 12)
+  ↓ conv1   12 -> 32
+        (8, 8, 32)
+  ↓ conv2   32 -> 32
+        (8, 8, 32)
+  ↓ conv3   32 -> 32
+        (8, 8, 32)
+```
 
-Edge squares matter in chess: rooks start in the corners, kings castle to the
-side. `"SAME"` keeps all 64 squares through every conv layer.
+Each layer's input channels must match the previous layer's output channels.
 
-## Layers at full size
-
-Each line is one weight. The **lines going into a circle** are the kernel's
-weights: 3 in the diagram, but at full size:
-
-| Row | Lines into each circle |
-|---|---|
-| `self.conv1` output | 3 x 3 x 12 = **108** |
-| `self.conv2` output | 3 x 3 x 64 = **576** |
-| `self.conv3` output | 3 x 3 x 64 = **576** |
-
-conv2 and conv3 have more lines per circle because they don't read the board,
-they read the layer below. Each square there holds **64 kernel opinions**
-(one per kernel) instead of **12 piece types**:
-
-- conv1: 9 squares x 12 piece types = **108**
-- conv2 / conv3: 9 squares x 64 kernel opinions = **576**
-
-Scaled down, it looks like this (1 circle stands for 12 piece types, 5 circles for
-64 kernels, so the lines keep roughly the real 1 : 5 ratio):
-
-![Lines into one node per layer: 3 for conv1, 15 for conv2 and conv3](images/conv-scaled.png)
-
-Each coloured node only connects to the 3 squares below it, but from conv2 on,
-each of those squares has 5 circles (really 64), so there are far more lines.
-
-### Reading the diagram
-
-- **Each red square** is one place where the window stopped. With stride 1
-  (ours) the window stops on every chess square, so each red square lines up
-  with one square on the board.
-- **Each circle** is one kernel's **final opinion** on that **red square**: a single
-  number, worked out from the 108 lines going into it.
-- **Each line** is one weight. A kernel's **108 weights go into 1 circle**:
-  that kernel's opinion.
+[paper]: https://arxiv.org/abs/1603.07285
+[repo]: https://github.com/vdumoulin/conv_arithmetic
