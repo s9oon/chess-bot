@@ -1,10 +1,11 @@
 # Board encoding
 
 A network only understands numbers, so `encode_board()` in
-[`main.py`](../main.py) turns a chess position into an array:
+[`encoding.py`](../encoding.py) turns a chess position into an array:
 
 ```python
 x = encode_board(chess.Board())   # shape (8, 8, 12)
+x = encode_fen(fen)               # same, from a FEN string (e.g. Lichess data)
 ```
 
 ## 12 input feature maps
