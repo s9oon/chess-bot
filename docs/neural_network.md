@@ -9,7 +9,7 @@ How the pieces fit together, from board to score. Details on each part:
 ## The layers
 
 ```
-input (8, 8, 12)                  the encoded board
+input (8, 8, 18)                  the encoded board
   → conv → batchnorm → ReLU   ┐
   → conv → batchnorm → ReLU   ├ hidden layers (conv)
   → conv → batchnorm → ReLU   ┘   (8, 8, 32) output feature maps
@@ -87,8 +87,10 @@ matters.
 | **FNN** (feed-forward / fully connected network) | **only** linear layers: every layer, hidden ones included |
 | **CNN** | conv layers to find patterns, usually **plus** a small linear head |
 
-## Status in `main.py`
+## Status in `model.py`
 
 - ✅ conv layers with batchnorm and ReLU
 - ✅ flatten, linear head (two layers: 2048 → 64 → ReLU → 1), tanh
-- ⬜ training (the scores are random until then)
+- ✅ 18 input feature maps: pieces, whose move, castling rights, en passant
+- ✅ training loop (`data.py` + `training.py`), saving `latest.npz` / `best.npz`
+- ⬜ first full training run on 10M positions

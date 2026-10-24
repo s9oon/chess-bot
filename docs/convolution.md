@@ -1,7 +1,7 @@
 # Convolution layers
 
 ```python
-self.conv1 = nnx.Conv(12, 32, (3, 3), padding="SAME", rngs=rngs)
+self.conv1 = nnx.Conv(NUM_PLANES, 32, (3, 3), padding="SAME", rngs=rngs)
 self.conv2 = nnx.Conv(32, 32, (3, 3), padding="SAME", rngs=rngs)
 self.conv3 = nnx.Conv(32, 32, (3, 3), padding="SAME", rngs=rngs)
 ```
@@ -54,7 +54,7 @@ layer:
 
 | Code | Paper's term | Ours |
 |---|---|---|
-| first number | input channels (input feature maps) | 12 for conv1, 32 after |
+| first number | input channels (input feature maps) | 18 for conv1, 32 after |
 | second number | output channels, one per kernel | 32 |
 | `(3, 3)` | kernel size *k* | 3 |
 | `strides` (default) | unit strides, *s* = 1 | moves 1 square at a time |
@@ -76,25 +76,25 @@ We use stride 1 and `padding="SAME"`, so the board stays 8x8 in every layer.
 The paper's figures show **one** input feature map and **one** kernel. Ours
 has more of both:
 
-- **Each kernel spans all input channels.** conv1's kernels are 3 x 3 x 12 =
-  **108** weights; conv2's and conv3's are 3 x 3 x 32 = **288**.
+- **Each kernel spans all input channels.** conv1's kernels are 3 x 3 x 18 =
+  **162** weights; conv2's and conv3's are 3 x 3 x 32 = **288**.
 - **Every kernel is applied to every patch.** 32 kernels give 32 output
   feature maps.
 
 As one matrix multiply, for conv1:
 
 ```
-patches (64, 108)  @  kernels (108, 32)  =  output (64, 32)  ->  (8, 8, 32)
+patches (64, 162)  @  kernels (162, 32)  =  output (64, 32)  ->  (8, 8, 32)
    │                     │
    │                     └─ one column per kernel
-   └─ one row per position (8 x 8), each a flattened 3x3x12 patch
+   └─ one row per position (8 x 8), each a flattened 3x3x18 patch
 ```
 
 ## Shapes through the layers
 
 ```
-board   (8, 8, 12)
-  ↓ conv1   12 -> 32
+board   (8, 8, 18)
+  ↓ conv1   18 -> 32
         (8, 8, 32)
   ↓ conv2   32 -> 32
         (8, 8, 32)
