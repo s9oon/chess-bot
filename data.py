@@ -6,7 +6,7 @@ import numpy as np
 from encoding import encode_fen
 
 DATA_DIR = Path(__file__).parent / "data"
-EVALS_FILE = DATA_DIR / "evals_1M.jsonl"  # Lichess positions with Stockfish evaluations
+EVALS_FILE = DATA_DIR / "evals_10M.jsonl"  # Lichess positions with Stockfish evaluations
 
 
 def best_score(evals: list[dict]) -> float:

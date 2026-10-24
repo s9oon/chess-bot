@@ -10,7 +10,7 @@ from data import load_positions, unpack_boards
 from model import ChessCNN, save_model
 
 LEARNING_RATE = 1e-3        # how big each weight nudge is
-NUM_POSITIONS = 200_000     # how many positions to load from data/
+NUM_POSITIONS = 10_000_000  # how many positions to load from data/
 BATCH_SIZE = 256            # boards per training step
 MAX_EPOCHS = 1000           # passes over the training set (the time limit usually stops it first)
 TRAIN_MINUTES = 60          # stop after this long
