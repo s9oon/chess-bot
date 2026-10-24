@@ -5,12 +5,15 @@ import jax
 import jax.numpy as jnp
 from flax import nnx
 
+from encoding import NUM_PLANES
+
 
 class ChessCNN(nnx.Module):
     """A simple convolutional neural network for chess board evaluation."""
 
     def __init__(self, rngs: nnx.Rngs):
-        self.conv1 = nnx.Conv(12, 32, (3, 3), padding="SAME", rngs=rngs)
+        # conv1 reads every input feature map from encoding.py (18: pieces, turn, castling, en passant).
+        self.conv1 = nnx.Conv(NUM_PLANES, 32, (3, 3), padding="SAME", rngs=rngs)
         self.conv2 = nnx.Conv(32, 32, (3, 3), padding="SAME", rngs=rngs)
         self.conv3 = nnx.Conv(32, 32, (3, 3), padding="SAME", rngs=rngs)
 

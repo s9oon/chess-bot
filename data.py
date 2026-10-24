@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 
-from encoding import encode_fen
+from encoding import NUM_PLANES, encode_fen
 
 DATA_DIR = Path(__file__).parent / "data"
 EVALS_FILE = DATA_DIR / "evals_10M.jsonl"  # Lichess positions with Stockfish evaluations
@@ -22,26 +22,26 @@ def best_score(evals: list[dict]) -> float:
     return float(np.tanh(best_line["cp"] / 400))
 
 
-BOARD_SHAPE = (8, 8, 12)
-PACKED_SIZE = 8 * 8 * 12 // 8  # 768 values of 0/1 packed 8 per byte = 96 bytes per board
+BOARD_SHAPE = (8, 8, NUM_PLANES)
+PACKED_SIZE = 8 * 8 * NUM_PLANES // 8  # 1152 values of 0/1 packed 8 per byte = 144 bytes per board
 
 
 def unpack_boards(packed: np.ndarray) -> np.ndarray:
-    """Unpack (batch, 96) packed boards back into (batch, 8, 8, 12) float32 feature maps."""
+    """Unpack (batch, 144) packed boards back into (batch, 8, 8, 18) float32 feature maps."""
     return np.unpackbits(packed, axis=1).reshape(-1, *BOARD_SHAPE).astype(np.float32)
 
 
 def load_positions(n: int) -> tuple[np.ndarray, np.ndarray]:
     """Load the first n positions as (boards, scores), both on the CPU.
 
-    boards: (n, 96) packed feature maps: every 0/1 stored as a single bit, 96 bytes per board
-            instead of 768, so millions of positions fit in RAM. Unpack batches with unpack_boards.
+    boards: (n, 144) packed feature maps: every 0/1 stored as a single bit, 144 bytes per board
+            instead of 1152, so millions of positions fit in RAM. Unpack batches with unpack_boards.
     scores: (n,) target scores in -1 .. +1.
 
     Encoding is slow, so the result is cached in data/ and loaded straight from there next time.
-    Delete the cache if the encoding changes.
+    The plane count is in the cache name, so changing the encoding builds a fresh cache.
     """
-    cache = DATA_DIR / f"encoded_{n}.npz"
+    cache = DATA_DIR / f"encoded_{n}_{NUM_PLANES}planes.npz"
     if cache.exists():
         saved = np.load(cache)
         return saved["boards"], saved["scores"]
