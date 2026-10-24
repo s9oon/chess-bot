@@ -1,2 +1,8 @@
 # Python's compiled-code cache (rebuilt automatically)
 __pycache__/
+
+# Training data (large, downloaded separately)
+data/
+
+# Trained weights
+checkpoints/

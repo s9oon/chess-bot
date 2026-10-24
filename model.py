@@ -1,3 +1,6 @@
+from pathlib import Path
+
+import numpy as np
 import jax
 import jax.numpy as jnp
 from flax import nnx
@@ -33,6 +36,23 @@ class ChessCNN(nnx.Module):
         x = self.linear2(x)            # (batch, 1): the score
         x = jnp.tanh(x)               # squish the score into -1 (black winning) .. +1 (white winning)
         return x[:, 0]                 # (batch,): one score per board
+
+
+def save_model(model: ChessCNN, path: Path) -> None:
+    """Save every weight (and batchnorm's running averages) to a .npz file."""
+    leaves = jax.tree.leaves(nnx.state(model))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(path, *[np.asarray(leaf) for leaf in leaves])
+
+
+def load_model(path: Path) -> ChessCNN:
+    """Build a fresh ChessCNN, then overwrite its random weights with the saved ones."""
+    model = ChessCNN(rngs=nnx.Rngs(0))
+    saved = np.load(path)
+    leaves = [saved[f"arr_{i}"] for i in range(len(saved.files))]
+    _, structure = jax.tree.flatten(nnx.state(model))
+    nnx.update(model, jax.tree.unflatten(structure, leaves))
+    return model
 
 
 if __name__ == "__main__":

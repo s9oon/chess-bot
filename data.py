@@ -22,10 +22,20 @@ def best_score(evals: list[dict]) -> float:
     return float(np.tanh(best_line["cp"] / 400))
 
 
+BOARD_SHAPE = (8, 8, 12)
+PACKED_SIZE = 8 * 8 * 12 // 8  # 768 values of 0/1 packed 8 per byte = 96 bytes per board
+
+
+def unpack_boards(packed: np.ndarray) -> np.ndarray:
+    """Unpack (batch, 96) packed boards back into (batch, 8, 8, 12) float32 feature maps."""
+    return np.unpackbits(packed, axis=1).reshape(-1, *BOARD_SHAPE).astype(np.float32)
+
+
 def load_positions(n: int) -> tuple[np.ndarray, np.ndarray]:
     """Load the first n positions as (boards, scores), both on the CPU.
 
-    boards: (n, 8, 8, 12) feature maps, stored as uint8 (0/1) to save memory.
+    boards: (n, 96) packed feature maps: every 0/1 stored as a single bit, 96 bytes per board
+            instead of 768, so millions of positions fit in RAM. Unpack batches with unpack_boards.
     scores: (n,) target scores in -1 .. +1.
 
     Encoding is slow, so the result is cached in data/ and loaded straight from there next time.
@@ -36,7 +46,7 @@ def load_positions(n: int) -> tuple[np.ndarray, np.ndarray]:
         saved = np.load(cache)
         return saved["boards"], saved["scores"]
 
-    boards = np.zeros((n, 8, 8, 12), dtype=np.uint8)
+    boards = np.zeros((n, PACKED_SIZE), dtype=np.uint8)
     scores = np.zeros(n, dtype=np.float32)
 
     # Read one line (one position) at a time, so the whole file never sits in memory.
@@ -45,10 +55,14 @@ def load_positions(n: int) -> tuple[np.ndarray, np.ndarray]:
             if i == n:
                 break
             position = json.loads(line)
-            boards[i] = encode_fen(position["fen"])
+            boards[i] = np.packbits(encode_fen(position["fen"]).astype(np.uint8))
             scores[i] = best_score(position["evals"])
             if (i + 1) % 50_000 == 0:
                 print(f"  encoded {i + 1:,} / {n:,}")
+
+    if i < n:
+        # The file ran out early: keep only the positions actually read.
+        boards, scores = boards[:i + 1], scores[:i + 1]
 
     np.savez(cache, boards=boards, scores=scores)
     return boards, scores
@@ -56,5 +70,6 @@ def load_positions(n: int) -> tuple[np.ndarray, np.ndarray]:
 
 if __name__ == "__main__":
     boards, scores = load_positions(200_000)
-    print("boards:", boards.shape, boards.dtype, f"{boards.nbytes / 1e6:.0f} MB")
+    print("boards:", boards.shape, boards.dtype, f"{boards.nbytes / 1e6:.0f} MB (packed)")
+    print("unpacked batch of 4:", unpack_boards(boards[:4]).shape)
     print("scores:", scores.shape, scores.dtype, f"min {scores.min():.2f}  max {scores.max():.2f}  mean {scores.mean():.2f}")

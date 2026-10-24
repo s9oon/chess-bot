@@ -3,7 +3,7 @@ import jax.numpy as jnp
 import chess
 
 
-def encode_board(board: chess.Board) -> jnp.ndarray:
+def encode_board(board: chess.Board) -> np.ndarray:
     """Turn a board into 12 planes of 8x8: shape (8, 8, 12)."""
     # Start with all zeros: 8 rows (ranks), 8 columns (files), 12 piece planes.
     planes = np.zeros((8, 8, 12), dtype=np.float32)
@@ -24,11 +24,16 @@ def encode_board(board: chess.Board) -> jnp.ndarray:
         # Mark "this piece is on this square".
         planes[row, col, plane] = 1.0
 
-    # Convert to a JAX array so it can go on the GPU.
-    return jnp.array(planes)
+    # Stays on the CPU as a NumPy array: copying boards to the GPU one at a time is slow.
+    return planes
 
 
-def encode_fen(fen: str) -> jnp.ndarray:
+def encode_fen(fen: str) -> np.ndarray:
     """Turn a FEN string (a position as text, e.g. from Lichess) into (8, 8, 12) planes."""
     # python-chess reads the FEN into a board, then it's encoded like any other board.
     return encode_board(chess.Board(fen))
+
+
+def encode_batch(boards: list[chess.Board]) -> jnp.ndarray:
+    """Encode many boards on the CPU, then upload them to the GPU in one go: (batch, 8, 8, 12)."""
+    return jnp.asarray(np.stack([encode_board(b) for b in boards]))
