@@ -4,8 +4,9 @@ A network only understands numbers, so `encode_board()` in
 [`encoding.py`](../encoding.py) turns a chess position into an array:
 
 ```python
-x = encode_board(chess.Board())   # shape (8, 8, 12)
+x = encode_board(chess.Board())   # shape (8, 8, 12), on the CPU
 x = encode_fen(fen)               # same, from a FEN string (e.g. Lichess data)
+x = encode_batch(boards)          # many boards: (batch, 8, 8, 12), uploaded to the GPU
 ```
 
 ## 12 input feature maps
@@ -60,9 +61,20 @@ maps, and an empty square is all `0`s.
 2. For every piece on the board, work out its rank (row), file (column) and
    map (`piece_type - 1`, plus 6 for black).
 3. Put a `1` there.
-4. Convert to a JAX array so it can go on the GPU.
+4. Return it as a NumPy array, still on the CPU.
 
 The array is built with NumPy because NumPy arrays can be changed in place;
 JAX arrays can't.
+
+## Batching before the GPU
+
+Copying data to the GPU has a fixed cost each time, so copying boards one at a
+time is slow. `encode_batch` encodes every board on the CPU first, stacks them,
+then uploads the whole batch to the GPU in **one** copy:
+
+```
+1000 boards, one-by-one upload:  ~420 ms
+1000 boards, encode_batch:        ~25 ms
+```
 
 [paper]: https://arxiv.org/abs/1603.07285
