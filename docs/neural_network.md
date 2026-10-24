@@ -3,7 +3,7 @@
 How the pieces fit together, from board to score. Details on each part:
 [encoding](encoding.md), [convolution](convolution.md),
 [batch normalization](batch_normalization.md), [activations](activations.md),
-[loss function](loss_function.md).
+[loss function](loss_function.md), [backpropagation](back_propagation.md).
 
 ## The layers
 
