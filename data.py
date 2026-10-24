@@ -1,12 +1,9 @@
 import json
-from pathlib import Path
 
 import numpy as np
 
+from config import CP_SCALE, DATA_DIR, EVALS_FILE
 from encoding import NUM_PLANES, encode_fen
-
-DATA_DIR = Path(__file__).parent / "data"
-EVALS_FILE = DATA_DIR / "evals_10M.jsonl"  # Lichess positions with Stockfish evaluations
 
 
 def best_score(evals: list[dict]) -> float:
@@ -19,7 +16,7 @@ def best_score(evals: list[dict]) -> float:
         return 1.0 if best_line["mate"] > 0 else -1.0
 
     # Centipawns (100 = one pawn up) squashed into -1 .. +1, the same range as the network's tanh.
-    return float(np.tanh(best_line["cp"] / 400))
+    return float(np.tanh(best_line["cp"] / CP_SCALE))
 
 
 BOARD_SHAPE = (8, 8, NUM_PLANES)

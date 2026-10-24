@@ -1,24 +1,14 @@
 import time
-from pathlib import Path
 
 import numpy as np
 import jax.numpy as jnp
 import optax
 from flax import nnx
 
+from config import (BATCH_SIZE, BEST, LATEST, LEARNING_RATE, MAX_EPOCHS, NUM_POSITIONS,
+                    SAVE_EVERY_MINUTES, TRAIN_MINUTES, VAL_FRACTION)
 from data import load_positions, unpack_boards
 from model import ChessCNN, save_model
-
-LEARNING_RATE = 1e-3        # how big each weight nudge is
-NUM_POSITIONS = 3_000_000  # how many positions to load from data/
-BATCH_SIZE = 256            # boards per training step
-MAX_EPOCHS = 1000           # passes over the training set (the time limit usually stops it first)
-TRAIN_MINUTES = 60          # stop after this long
-SAVE_EVERY_MINUTES = 5      # how often to save the latest weights
-
-CHECKPOINT_DIR = Path(__file__).parent / "checkpoints"
-LATEST = CHECKPOINT_DIR / "latest.npz"  # saved every 5 minutes and at the end
-BEST = CHECKPOINT_DIR / "best.npz"      # saved whenever validation loss improves
 
 
 def loss_fn(model, boards, targets):
@@ -61,8 +51,8 @@ def train(num_positions: int = NUM_POSITIONS, train_minutes: float = TRAIN_MINUT
     print(f"loading {num_positions:,} positions...")
     boards, scores = load_positions(num_positions)
 
-    # Hold back 5% the network never trains on, to check it isn't just memorising.
-    split = int(len(boards) * 0.95)
+    # Hold back some positions the network never trains on, to check it isn't just memorising.
+    split = int(len(boards) * (1 - VAL_FRACTION))
     train_boards, train_scores = boards[:split], scores[:split]
     val_boards, val_scores = boards[split:], scores[split:]
 
