@@ -25,3 +25,10 @@ SAVE_EVERY_MINUTES = 5   # how often to save the latest weights
 CHECKPOINT_DIR = ROOT / "checkpoints"
 LATEST = CHECKPOINT_DIR / "latest.npz"  # saved every few minutes and at the end
 BEST = CHECKPOINT_DIR / "best.npz"      # saved whenever validation loss improves
+
+# --- Play (MCTS) ---
+MCTS_SIMULATIONS = 400  # simulations per search: more = stronger but slower
+C_PUCT = 1.5            # exploration: higher = tries more moves, lower = sticks to the best-looking ones
+PRIOR_SHARPNESS = 5.0   # how strongly the network's move scores steer which moves get explored first
+NUM_SUGGESTIONS = 3     # moves suggested to the player
+PORT = 8000             # play at http://localhost:PORT
